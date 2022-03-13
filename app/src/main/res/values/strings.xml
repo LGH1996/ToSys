@@ -1,0 +1,20 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">ToSys</string>
+    <string name="reinstall_tip">需要卸载后重新安装，是否现在开始？</string>
+    <string name="invalid_tip">本模块依赖Xposed框架，请确保Xposed框架已安装并且本模块已激活，否则无法使用。</string>
+    <string name="disabled_tip">当前模块处于被禁用状态，请使用adb命令 \"adb shell setprop persist.lingh.tosys.enable true\" 解除禁用。</string>
+    <string name="abi_un_match_tip">当前应用so库（<xliff:g>%1$d</xliff:g>位）与手机cpu架构（<xliff:g>%2$d</xliff:g>位）不一致，转换后将导致不可用，是否继续卸载重装？</string>
+    <string name="apk_analysis_err">apk解析错误，请自行卸载然后重新安装。</string>
+
+    <string name="how_use">
+        使用说明：
+        \n本模块依赖于Xposed框架，需在Xposed框架中激活后才可正常使用。
+        \n本模块可将普通应用转换为系统应用，只需将相应的开关打开然后卸载重装即可（直接覆盖安装将导致不可用），因此可用于系统应用开发（调用系统级接口）或者应用保活（提高进程优先级）。
+        \n如果使用后出现卡顿或耗电量增加的情况，请检查是否是因为某个应用转换为系统应用后在后台大量损耗资源而不会被杀死导致的。
+    </string>
+    <string name="disclaimers">
+        免责声明：
+        \n作者本人对于本模块所导致的任何问题概不负责。
+        \n本模块可能会导致手机变砖，请提前备好刷机包，在出问题时通过刷机恢复，或者通过adb命令 \"adb shell setprop persist.lingh.tosys.enable false\" 暂时禁用本模块功能。
+    </string>
+</resources>
