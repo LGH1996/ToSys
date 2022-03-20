@@ -25,3 +25,4 @@
 -keep class com.lingh.app.tosys.myclass.MyUpdateMessage$Asset {*;}
 -keep class com.lingh.app.tosys.myclass.MyUpdateMessage$Author {*;}
 -keep class com.lingh.app.tosys.myclass.MyUpdateMessage$Uploader {*;}
+-keep class com.lingh.app.tosys.myclass.MyViewModel{isModuleValid();}

@@ -49,7 +49,6 @@ public class MyXposedHook implements IXposedHookLoadPackage {
 
     static {
         try {
-            XposedHelpers.callStaticMethod(classSystemProperties, "set", "lingh.tosys.valid", String.valueOf(true));
             if (isHookEnable) {
                 readConfigFromFile();
             }
@@ -79,6 +78,16 @@ public class MyXposedHook implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+
+        if (TextUtils.equals(lpparam.packageName, "com.lingh.app.tosys")) {
+            Class<?> classMyViewModel = XposedHelpers.findClassIfExists("com.lingh.app.tosys.myclass.MyViewModel", lpparam.classLoader);
+            XposedHelpers.findAndHookMethod(classMyViewModel, "isModuleValid", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    param.setResult(true);
+                }
+            });
+        }
 
         if (!isHookEnable) {
             return;

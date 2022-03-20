@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
         mainFragment = MainFragment.getInstance();
         gotoMainFragment();
-        if (!myViewModel.isModuleValid) {
+        if (!myViewModel.isModuleValid()) {
             showModuleInvalidDialog();
         } else if (!myViewModel.isModuleEnabled) {
             showModuleDisabledDialog();

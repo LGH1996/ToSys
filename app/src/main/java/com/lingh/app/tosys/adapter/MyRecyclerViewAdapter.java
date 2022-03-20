@@ -155,7 +155,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             binding.item.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (!myViewModel.isModuleValid) {
+                    if (!myViewModel.isModuleValid()) {
                         Toast.makeText(mainActivity, "模块未激活", Toast.LENGTH_SHORT).show();
                     } else if (!myViewModel.isModuleEnabled) {
                         Toast.makeText(mainActivity, "模块被禁用", Toast.LENGTH_SHORT).show();

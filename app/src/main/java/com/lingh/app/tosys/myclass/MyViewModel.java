@@ -38,7 +38,6 @@ public class MyViewModel extends AndroidViewModel {
     public HashMap<String, MyAppConfig> myAppConfigHashMap;
     public int cpuAbi;
     public int curPosition;
-    public boolean isModuleValid = false;
     public boolean isModuleEnabled = true;
     public MyHttpRequest myHttpRequest;
 
@@ -62,9 +61,7 @@ public class MyViewModel extends AndroidViewModel {
             Class<?> propClass = Class.forName("android.os.SystemProperties");
             Method method = propClass.getDeclaredMethod("getBoolean", String.class, boolean.class);
             method.setAccessible(true);
-            Object result = method.invoke(propClass, "lingh.tosys.valid", false);
-            isModuleValid = result != null && (boolean) result;
-            result = method.invoke(propClass, "persist.lingh.tosys.enable", true);
+            Object result = method.invoke(propClass, "persist.lingh.tosys.enable", true);
             isModuleEnabled = result == null || (boolean) result;
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
@@ -109,5 +106,9 @@ public class MyViewModel extends AndroidViewModel {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isModuleValid() {
+        return false;
     }
 }
