@@ -20,6 +20,9 @@
             android:name="xposedminversion"
             android:value="30+" />
         <meta-data
+            android:name="xposedscope"
+            android:resource="@array/xposed_scope" />
+        <meta-data
             android:name="xposeddescription"
             android:value="试下把普通应用转换为系统应用吧！" />
 
