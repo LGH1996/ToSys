@@ -105,6 +105,11 @@ public class MyXposedHook implements IXposedHookLoadPackage {
             Class<?> classUriGrantsManagerService = XposedHelpers.findClassIfExists("com.android.server.uri.UriGrantsManagerService", lpparam.classLoader);
             Class<?> classAmGrantUri = XposedHelpers.findClassIfExists("com.android.server.am.ActivityManagerService.GrantUri", lpparam.classLoader);
             Class<?> classUriGrantUri = XposedHelpers.findClassIfExists("com.android.server.uri.GrantUri", lpparam.classLoader);
+            Class<?> classParsingPackageUtils = XposedHelpers.findClassIfExists("android.content.pm.parsing.ParsingPackageUtils", lpparam.classLoader);
+            Class<?> classParseTypeImpl = XposedHelpers.findClassIfExists("android.content.pm.parsing.result.ParseTypeImpl", lpparam.classLoader);
+            Class<?> classParsingPackageImpl = XposedHelpers.findClassIfExists("android.content.pm.parsing.ParsingPackageImpl", lpparam.classLoader);
+            Class<?> classParsedProvider = XposedHelpers.findClassIfExists("android.content.pm.parsing.component.ParsedProvider", lpparam.classLoader);
+            Class<?> classPackageParserProvider = XposedHelpers.findClassIfExists("android.content.pm.PackageParser.Provider", lpparam.classLoader);
 
             XposedBridge.hookAllMethods(classActivityManagerService, "finishBooting", new XC_MethodHook() {
                 @Override
@@ -161,6 +166,9 @@ public class MyXposedHook implements IXposedHookLoadPackage {
                         if (providers == null || providers.isEmpty()) {
                             return;
                         }
+                        if (!classPackageParserProvider.isAssignableFrom(providers.get(0).getClass())) {
+                            return;
+                        }
                         myHookAppConfig.providerAuthorityList = new ArrayList<>();
                         for (Object e : providers) {
                             ProviderInfo info = (ProviderInfo) XposedHelpers.getObjectField(e, "info");
@@ -172,6 +180,52 @@ public class MyXposedHook implements IXposedHookLoadPackage {
                     }
                 }
             });
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                XposedBridge.hookAllMethods(classParsingPackageUtils, "parsePackage", new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        try {
+                            XposedBridge.log("LinGH->parsePackage->args->" + Arrays.toString(param.args));
+                            Object result = param.getResult();
+                            XposedBridge.log("LinGH->parsePackage->result->" + result);
+                            if (!classParseTypeImpl.isAssignableFrom(result.getClass())) {
+                                return;
+                            }
+                            Object parsingPackageImpl = XposedHelpers.getObjectField(result, "mResult");
+                            XposedBridge.log("LinGH->parsePackage->parsingPackageImpl->" + parsingPackageImpl);
+                            if (!classParsingPackageImpl.isAssignableFrom(parsingPackageImpl.getClass())) {
+                                return;
+                            }
+                            String packageName = (String) XposedHelpers.getObjectField(parsingPackageImpl, "packageName");
+                            MyHookAppConfig myHookAppConfig = hookConfigMap.get(packageName);
+                            if (myHookAppConfig == null) {
+                                return;
+                            }
+                            XposedHelpers.setObjectField(parsingPackageImpl, "sharedUserId", "android.uid.system");
+                            XposedBridge.log("LinGH->parsePackage->hook");
+                            //android.content.pm.parsing.component.ParsedProvider
+                            List<?> providers = (List<?>) XposedHelpers.getObjectField(parsingPackageImpl, "providers");
+                            if (providers == null || providers.isEmpty()) {
+                                return;
+                            }
+                            if (!classParsedProvider.isAssignableFrom(providers.get(0).getClass())) {
+                                return;
+                            }
+                            myHookAppConfig.providerAuthorityList = new ArrayList<>();
+                            for (Object e : providers) {
+                                String authority = (String) XposedHelpers.getObjectField(e, "authority");
+                                if (!TextUtils.isEmpty(authority)) {
+                                    myHookAppConfig.providerAuthorityList.add(authority);
+                                }
+                            }
+                            XposedBridge.log("LinGH->parsePackage->hasProvider->" + myHookAppConfig.providerAuthorityList);
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
 
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1) {
                 XposedBridge.hookAllMethods(classPackageManagerService, "verifySignaturesLP", new XC_MethodHook() {
@@ -218,20 +272,16 @@ public class MyXposedHook implements IXposedHookLoadPackage {
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         try {
                             XposedBridge.log("LinGH->verifySignatures->args->" + Arrays.toString(param.args));
-                            if (param.args.length < 2) {
+                            if (param.args.length < 1) {
                                 return;
                             }
-                            if (!classPackageSetting.isAssignableFrom(param.args[0].getClass())
-                                    || !classPackageSetting.isAssignableFrom(param.args[1].getClass())) {
+                            if (!classPackageSetting.isAssignableFrom(param.args[0].getClass())) {
                                 return;
                             }
                             Object pkgSetting = param.args[0];
-                            Object disabledPkgSetting = param.args[1];
                             String pkgSettingName = (String) XposedHelpers.getObjectField(pkgSetting, "name");
-                            String disabledPkgSettingName = (String) XposedHelpers.getObjectField(disabledPkgSetting, "name");
-                            MyHookAppConfig setConfig = hookConfigMap.get(pkgSettingName);
-                            MyHookAppConfig disConfig = hookConfigMap.get(disabledPkgSettingName);
-                            if (setConfig == null && disConfig == null) {
+                            MyHookAppConfig myHookAppConfig = hookConfigMap.get(pkgSettingName);
+                            if (myHookAppConfig == null) {
                                 return;
                             }
                             try {
@@ -240,7 +290,7 @@ public class MyXposedHook implements IXposedHookLoadPackage {
                                 if (classPackageManagerException.isAssignableFrom(throwable.getClass())) {
                                     int error = XposedHelpers.getIntField(throwable, "error");
                                     if (error == INSTALL_FAILED_SHARED_USER_INCOMPATIBLE) {
-                                        param.setResult(true);
+                                        param.setResult(false);
                                         XposedBridge.log("LinGH->verifySignatures->hook");
                                     }
                                 }
@@ -366,8 +416,8 @@ public class MyXposedHook implements IXposedHookLoadPackage {
                 });
             }
 
-            Method[] methods = classPackageManagerService.getDeclaredMethods();
-            for (Method method : methods) {
+            Method[] methodsPms = classPackageManagerService.getDeclaredMethods();
+            for (Method method : methodsPms) {
                 if (PackageInfo.class.isAssignableFrom(method.getReturnType())) {
                     Class<?>[] params = method.getParameterTypes();
                     Object[] objects = new Object[params.length + 1];
@@ -404,7 +454,8 @@ public class MyXposedHook implements IXposedHookLoadPackage {
                         protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                             try {
                                 ApplicationInfo result = (ApplicationInfo) param.getResult();
-                                if (result.uid != Process.SYSTEM_UID) {
+                                if (result == null
+                                        || result.uid != Process.SYSTEM_UID) {
                                     return;
                                 }
                                 MyHookAppConfig myHookAppConfig = hookConfigMap.get(result.packageName);

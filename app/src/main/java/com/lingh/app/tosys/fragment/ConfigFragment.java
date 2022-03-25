@@ -1,6 +1,9 @@
 package com.lingh.app.tosys.fragment;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -44,6 +47,7 @@ public class ConfigFragment extends Fragment {
     private MyViewModel myViewModel;
     private MyAppDescribe myAppDescribe;
     private WaitingDialog copyWaitingDialog;
+    private BroadcastReceiver broadcastReceiver;
     private int enhanceFlag;
     private boolean isInstalled;
     private boolean hasSysSharedUserId;
@@ -62,6 +66,7 @@ public class ConfigFragment extends Fragment {
         enhanceFlag = ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_PERSISTENT;
         copyWaitingDialog = new WaitingDialog();
         appAbi = myAppDescribe.primaryCpuAbi == null ? myViewModel.cpuAbi : myAppDescribe.primaryCpuAbi.contains("64") ? 64 : 32;
+        registerReceiver();
     }
 
     @Override
@@ -76,6 +81,12 @@ public class ConfigFragment extends Fragment {
         initStates();
         initViews();
         initEvents();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver();
     }
 
     private void initStates() {
@@ -175,6 +186,33 @@ public class ConfigFragment extends Fragment {
                 initViews();
             }
         });
+    }
+
+    private void registerReceiver() {
+        broadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_ADDED)
+                        || TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_REMOVED)) {
+                    String dataString = intent.getDataString();
+                    String packageName = dataString != null ? dataString.substring(8) : null;
+                    if (TextUtils.equals(packageName, myAppDescribe.packageName) && isResumed()) {
+                        initStates();
+                        initViews();
+                        initEvents();
+                    }
+                }
+            }
+        };
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        intentFilter.addDataScheme("package");
+        requireContext().registerReceiver(broadcastReceiver, intentFilter);
+    }
+
+    private void unregisterReceiver() {
+        requireContext().unregisterReceiver(broadcastReceiver);
     }
 
     private void showReinstallDialog() {
